@@ -22,14 +22,13 @@ It includes both **Command-Line Tools** and a **Modern FastAPI Web Dashboard** f
 
 ## 🧩 Tech Stack
 
-```
 | Layer | Technology Used |
 |:------|:----------------|
 | Backend | **Python**, **FastAPI**, **SQLite**, **Threading**, **Jinja2** |
 | Frontend | **Tailwind CSS**, **HTMX**, **Vanilla JS** |
 | Testing | **pytest** |
 | Tools | **Uvicorn**, **Virtualenv**, **Git**, **GitHub Actions** |
-````
+
 
 
 ## 📁 Folder Structure
