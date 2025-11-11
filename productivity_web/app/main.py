@@ -68,15 +68,55 @@ def notes_list(request: Request):
     items = notes_service.list_notes()
     return templates.TemplateResponse("notes_list.html", {"request": request, "notes": items})
 
-@app.get("/notes/add", response_class=HTMLResponse)
-def notes_add_form(request: Request):
-    return templates.TemplateResponse("notes_add.html", {"request": request})
-
-@app.post("/notes/add")
+@app.post("/notes/add", response_class=HTMLResponse)
 def notes_add(request: Request, title: str = Form(...), body: str = Form(""), tags: str = Form("")):
-    tags_list = [t.strip() for t in tags.split(",")] if tags.strip() else []
-    notes_service.add_note(title, body, tags=tags_list)
-    return RedirectResponse(url="/notes", status_code=303)
+    """
+    Robust notes add handler: uses the shared PRODUCTIVITY_DB path, logs exceptions,
+    and returns a friendly page on error instead of a raw 500.
+    """
+    try:
+        # sanitize inputs
+        title = (title or "").strip()
+        body = (body or "").strip()
+        # normalize tags: accept comma-separated string and convert to list
+        tags_list = None
+        if tags is not None:
+            tags = tags.strip()
+            tags_list = [t.strip() for t in tags.split(",")] if tags else []
+
+        # Use the same DB path used by startup initializer
+        from productivity import db_init
+        db_path = db_init.get_db_path()
+
+        # Call service explicitly with db_path to avoid ambiguity
+        # some implementations accept db_path kwarg
+        try:
+            nid = notes_service.add_note(title, body, tags=tags_list, db_path=db_path)
+        except TypeError:
+            # fallback if service signature doesn't accept db_path
+            nid = notes_service.add_note(title, body, tags=tags_list)
+
+        logger.info("Added note id=%s title=%s", nid, title)
+        # redirect to notes list on success
+        return RedirectResponse(url="/notes", status_code=303)
+
+    except Exception as exc:
+        # log full traceback to server logs (Render will capture this)
+        logger.exception("Failed to add note: title=%s", title)
+        # show the add form again with a friendly error message
+        # render the notes_add.html template and pass the user inputs back
+        return templates.TemplateResponse(
+            "notes_add.html",
+            {
+                "request": request,
+                "title": title,
+                "body": body,
+                "tags": tags,
+                "error": "Failed to add note. The error was logged on the server.",
+            },
+            status_code=500,
+        )
+
 
 @app.get("/notes/{note_id}", response_class=HTMLResponse)
 def notes_show(request: Request, note_id: int):
