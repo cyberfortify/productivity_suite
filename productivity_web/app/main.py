@@ -6,13 +6,27 @@ from productivity import notes as notes_service
 from productivity import timer as timer_service
 from productivity import calculator as calc_service
 from productivity import organizer as organizer_service
+from pathlib import Path
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 import os
 
 app = FastAPI(title="Productivity Suite (Web)")
 
-templates = Jinja2Templates(directory="app/templates")
+# Compute paths relative to this file (productivity_web/app/main.py)
+BASE_DIR = Path(__file__).resolve().parent   # points to productivity_web/app
+TEMPLATES_DIR = BASE_DIR / "templates"
+STATIC_DIR = BASE_DIR / "static"
 
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+# Ensure static directory exists (create empty dir if missing so StaticFiles won't crash)
+if not STATIC_DIR.exists():
+    STATIC_DIR.mkdir(parents=True, exist_ok=True)
+
+# Use explicit string paths to avoid problems
+templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+
+# Mount static using absolute/robust path
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
