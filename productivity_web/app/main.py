@@ -6,6 +6,7 @@ from productivity import notes as notes_service
 from productivity import timer as timer_service
 from productivity import calculator as calc_service
 from productivity import organizer as organizer_service
+from productivity import db_init
 from pathlib import Path
 import os
 import logging
@@ -46,6 +47,15 @@ async def all_exception_handler(request, exc):
     logger.exception("Unhandled exception for request %s %s", request.method, request.url)
     # return a friendly PlainTextResponse (avoids exposing internals to users)
     return PlainTextResponse("Internal Server Error (logged). Please check server logs.", status_code=500)
+
+@app.on_event("startup")
+def startup_event():
+    try:
+        db_path = db_init.get_db_path()
+        db_init.ensure_db_and_tables(db_path)
+        logger.info("DB initialization check OK: %s", db_path)
+    except Exception:
+        logger.exception("Failed to initialize DB on startup")
 
 
 @app.get("/", response_class=HTMLResponse)
