@@ -1,77 +1,196 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="grid gap-6 lg:grid-cols-2">
-  <div class="bg-white p-6 rounded-lg shadow">
-    <h3 class="text-lg font-semibold">Start Timer</h3>
-
-    {# show message via toast when present #}
-    {% if message %}
-    <script>
-      (function(){
-        const msg = {{ message|tojson }};
-        if (typeof showToast === "function") { showToast(msg); }
-      })();
-    </script>
-    {% endif %}
-
-    <form id="timer-start-form" method="post" action="/timer/start" class="mt-3 space-y-3">
-      <div>
-        <label class="block text-sm">Seconds</label>
-        <input name="seconds" type="number" min="1" required class="mt-1 w-full rounded border px-3 py-2" />
-      </div>
-      <div>
-        <label class="block text-sm">Label</label>
-        <input name="label" class="mt-1 w-full rounded border px-3 py-2" />
-      </div>
-      <div>
-        <button id="timer-start-btn" class="px-4 py-2 bg-indigo-600 text-white rounded">Start</button>
-      </div>
-    </form>
-
-    <div class="mt-6">
-      <h4 class="text-sm font-medium text-gray-600">Active Timers</h4>
-      <div id="active-timers" class="mt-2 space-y-2">
-        {% if active %}
-          {% for a in active %}
-          <div data-tid="{{ a.id }}" data-start="{{ a.started_at }}" data-seconds="{{ a.seconds }}" class="flex items-center justify-between bg-gray-50 p-3 rounded">
-            <div>
-              <div class="font-medium text-sm">{{ a.label or "Timer" }}</div>
-              <div class="text-xs text-gray-500"><span class="timer-remaining">{{ a.seconds }}s</span></div>
-            </div>
-            <form method="post" action="/timer/stop" class="inline">
-              <input type="hidden" name="timer_id" value="{{ a.id }}">
-              <button class="px-3 py-1 text-sm bg-red-500 text-white rounded">Stop</button>
-            </form>
-          </div>
-          {% endfor %}
-        {% else %}
-          <div class="text-sm text-gray-500">No active timers.</div>
-        {% endif %}
-      </div>
-    </div>
+<div class="max-w-6xl mx-auto">
+  <!-- Header -->
+  <div class="mb-8 text-center">
+    <h1 class="text-3xl font-bold text-gray-900">Focus Timer</h1>
+    <p class="text-gray-600 mt-2">Boost your productivity with timed sessions</p>
   </div>
 
-  <div class="bg-white p-6 rounded-lg shadow">
-    <h3 class="text-lg font-semibold">History</h3>
-    <div class="mt-4 overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead class="text-left text-gray-500">
-          <tr><th>ID</th><th>Label</th><th>Duration</th></tr>
-        </thead>
-        <tbody class="mt-2" id="history-body">
-          {% if history %}
-            {% for h in history %}
-            <tr class="border-t">
-              <td class="py-2">{{ h.id }}</td>
-              <td class="py-2">{{ h.label }}</td>
-              <td class="py-2">{{ h.duration_s }} s</td>
-            </tr>
-            {% endfor %}
-          {% else %}
-            <tr><td colspan="3" class="py-4 text-gray-500">No history yet.</td></tr>
-          {% endif %}
-        </tbody>
-      </table>
+  <div class="grid gap-6 lg:grid-cols-2">
+    <!-- Timer Control Panel -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div class="p-1 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
+      <div class="p-6">
+        <h3 class="text-xl font-semibold text-gray-900 mb-2">Start New Timer</h3>
+        <p class="text-gray-600 mb-6">Set a custom timer or use quick presets</p>
+
+        {# show message via toast when present #}
+        {% if message %}
+        <script>
+          (function(){
+            const msg = {{ message|tojson }};
+            if (typeof showToast === "function") { 
+              showToast(msg, 'success'); 
+            }
+          })();
+        </script>
+        {% endif %}
+
+        <!-- Quick Presets -->
+        <div class="mb-6">
+          <h4 class="text-sm font-medium text-gray-700 mb-3">Quick Presets</h4>
+          <div class="grid grid-cols-3 gap-2">
+            <button type="button" data-seconds="300" class="quick-timer-btn px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors">
+              5 min
+            </button>
+            <button type="button" data-seconds="1500" class="quick-timer-btn px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors">
+              25 min
+            </button>
+            <button type="button" data-seconds="3600" class="quick-timer-btn px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors">
+              60 min
+            </button>
+          </div>
+        </div>
+
+        <form id="timer-start-form" method="post" action="/timer/start" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="seconds" class="block text-sm font-medium text-gray-700 mb-2">Duration (seconds)</label>
+              <input 
+                id="seconds"
+                name="seconds" 
+                type="number" 
+                min="1" 
+                required 
+                placeholder="e.g., 300 for 5 minutes"
+                class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition-colors" 
+              />
+            </div>
+            <div>
+              <label for="label" class="block text-sm font-medium text-gray-700 mb-2">Label</label>
+              <input 
+                id="label"
+                name="label" 
+                placeholder="e.g., Focus Session, Break"
+                class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition-colors" 
+              />
+            </div>
+          </div>
+          
+          <div class="pt-2">
+            <button 
+              id="timer-start-btn" 
+              type="submit"
+              class="w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium rounded-lg shadow-sm hover:shadow-md transition-all hover:from-indigo-700 hover:to-purple-700"
+            >
+              Start Timer
+            </button>
+          </div>
+        </form>
+
+        <!-- Active Timers Section -->
+        <div class="mt-8 pt-6 border-t border-gray-200">
+          <h4 class="text-lg font-semibold text-gray-900 mb-4">Active Timers</h4>
+          <div id="active-timers" class="space-y-3">
+            {% if active %}
+              {% for a in active %}
+              <div data-tid="{{ a.id }}" data-start="{{ a.started_at }}" data-seconds="{{ a.seconds }}" class="flex items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <div class="flex-1 min-w-0">
+                  <div class="font-medium text-gray-900">{{ a.label or "Timer" }}</div>
+                  <div class="flex items-center mt-1">
+                    <div class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+                    <div class="text-sm text-gray-600">
+                      <span class="timer-remaining font-mono">{{ a.seconds }}s</span> remaining
+                    </div>
+                  </div>
+                </div>
+                <form method="post" action="/timer/stop" class="flex-shrink-0 ml-4">
+                  <input type="hidden" name="timer_id" value="{{ a.id }}">
+                  <button 
+                    type="submit"
+                    class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg transition-colors flex items-center"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+                    </svg>
+                    Stop
+                  </button>
+                </form>
+              </div>
+              {% endfor %}
+            {% else %}
+              <div class="text-center py-8 bg-gray-50 rounded-xl border border-gray-200">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <h3 class="mt-4 text-lg font-medium text-gray-900">No active timers</h3>
+                <p class="mt-1 text-gray-500">Start a timer to see it here</p>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- History Panel -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div class="p-1 bg-gradient-to-r from-green-500 to-emerald-500"></div>
+      <div class="p-6">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h3 class="text-xl font-semibold text-gray-900">Timer History</h3>
+            <p class="text-gray-600 mt-1">Your completed sessions</p>
+          </div>
+          <div class="text-sm text-gray-500">
+            {{ history|length }} sessions
+          </div>
+        </div>
+        
+        <div class="overflow-hidden rounded-lg border border-gray-200">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-gray-50 text-left">
+                <tr>
+                  <th class="px-4 py-3 font-medium text-gray-700">Label</th>
+                  <th class="px-4 py-3 font-medium text-gray-700">Duration</th>
+                  <th class="px-4 py-3 font-medium text-gray-700 hidden sm:table-cell">Status</th>
+                </tr>
+              </thead>
+              <tbody id="history-body" class="divide-y divide-gray-200">
+                {% if history %}
+                  {% for h in history %}
+                  <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-4 py-3 text-gray-900">
+                      <div class="font-medium">{{ h.label or "Untitled" }}</div>
+                      <div class="text-xs text-gray-500 mt-1 sm:hidden">ID: {{ h.id }}</div>
+                    </td>
+                    <td class="px-4 py-3">
+                      <span class="font-mono text-gray-700">{{ h.duration_s }}s</span>
+                    </td>
+                    <td class="px-4 py-3 hidden sm:table-cell">
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Completed
+                      </span>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr>
+                    <td colspan="3" class="px-4 py-8 text-center text-gray-500">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <h3 class="mt-4 text-lg font-medium text-gray-900">No history yet</h3>
+                      <p class="mt-1">Complete a timer to see it here</p>
+                    </td>
+                  </tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        {% if history %}
+        <div class="mt-4 flex justify-between items-center text-sm text-gray-500">
+          <div>Showing {{ history|length }} sessions</div>
+          <button class="text-indigo-600 hover:text-indigo-800 font-medium transition-colors">
+            Clear History
+          </button>
+        </div>
+        {% endif %}
+      </div>
     </div>
   </div>
 </div>
@@ -85,6 +204,13 @@
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
+  }
+
+  // Format seconds to MM:SS
+  function formatTime(seconds) {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }
 
   // Compute remaining seconds given total seconds and start epoch (seconds)
@@ -106,13 +232,20 @@
       const rem = computeRemaining(seconds, start);
       const el = node.querySelector('.timer-remaining');
       if (el) {
-        el.textContent = rem + 's';
+        el.textContent = formatTime(rem);
       }
-      // if remaining hits 0, optionally fade out (actual removal relies on poll)
+      // if remaining hits 0, change styling
       if (rem <= 0) {
-        node.classList.add('opacity-60');
+        node.classList.add('opacity-70', 'bg-yellow-50', 'border-yellow-200');
+        node.classList.remove('bg-gray-50', 'border-gray-200');
+        const statusDot = node.querySelector('.bg-green-500');
+        if (statusDot) {
+          statusDot.classList.remove('bg-green-500', 'animate-pulse');
+          statusDot.classList.add('bg-yellow-500');
+        }
       } else {
-        node.classList.remove('opacity-60');
+        node.classList.remove('opacity-70', 'bg-yellow-50', 'border-yellow-200');
+        node.classList.add('bg-gray-50', 'border-gray-200');
       }
     });
   }
@@ -129,7 +262,15 @@
 
       // Build DOM from active list
       if (active.length === 0) {
-        container.innerHTML = '<div class="text-sm text-gray-500">No active timers.</div>';
+        container.innerHTML = `
+          <div class="text-center py-8 bg-gray-50 rounded-xl border border-gray-200">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h3 class="mt-4 text-lg font-medium text-gray-900">No active timers</h3>
+            <p class="mt-1 text-gray-500">Start a timer to see it here</p>
+          </div>
+        `;
       } else {
         // Map existing nodes by tid to minimize DOM churn
         const existing = {};
@@ -155,15 +296,29 @@
             wrapper.setAttribute('data-tid', tid);
             wrapper.setAttribute('data-start', a.started_at);
             wrapper.setAttribute('data-seconds', a.seconds);
-            wrapper.className = 'flex items-center justify-between bg-gray-50 p-3 rounded';
+            wrapper.className = 'flex items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-200';
             wrapper.innerHTML = `
-              <div>
-                <div class="font-medium text-sm">${escapeHtml(a.label || 'Timer')}</div>
-                <div class="text-xs text-gray-500"><span class="timer-remaining">${escapeHtml(String(a.seconds))}s</span></div>
+              <div class="flex-1 min-w-0">
+                <div class="font-medium text-gray-900">${escapeHtml(a.label || 'Timer')}</div>
+                <div class="flex items-center mt-1">
+                  <div class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+                  <div class="text-sm text-gray-600">
+                    <span class="timer-remaining font-mono">${formatTime(a.seconds)}</span> remaining
+                  </div>
+                </div>
               </div>
-              <form method="post" action="/timer/stop" class="inline">
+              <form method="post" action="/timer/stop" class="flex-shrink-0 ml-4">
                 <input type="hidden" name="timer_id" value="${escapeHtml(tid)}">
-                <button class="px-3 py-1 text-sm bg-red-500 text-white rounded">Stop</button>
+                <button 
+                  type="submit"
+                  class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg transition-colors flex items-center"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+                  </svg>
+                  Stop
+                </button>
               </form>
             `;
             frag.appendChild(wrapper);
@@ -195,6 +350,18 @@
     }
   }
 
+  // Quick timer buttons
+  document.querySelectorAll('.quick-timer-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const seconds = this.getAttribute('data-seconds');
+      document.getElementById('seconds').value = seconds;
+      // Optional: show confirmation
+      if (typeof showToast === "function") {
+        showToast(`Set to ${formatTime(seconds)}`, 'info', 2000);
+      }
+    });
+  });
+
   // Polling: fetch active timers every 2s
   let pollInterval = setInterval(refreshActive, 2000);
   refreshActive();
@@ -210,8 +377,17 @@
       const btn = document.getElementById('timer-start-btn');
       if (btn) {
         btn.disabled = true;
-        btn.innerText = 'Starting...';
-        setTimeout(()=>{ btn.disabled = false; btn.innerText = 'Start'; }, 1500);
+        btn.innerHTML = `
+          <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Starting...
+        `;
+        setTimeout(() => { 
+          btn.disabled = false; 
+          btn.textContent = 'Start Timer'; 
+        }, 1500);
       }
     });
   }

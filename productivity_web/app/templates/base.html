@@ -5,119 +5,235 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Productivity Suite</title>
 
-    <!-- Tailwind CDN (fast prototyping) -->
+    <!-- Tailwind CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-
+    
     <!-- HTMX -->
     <script src="https://unpkg.com/htmx.org@1.9.2"></script>
 
-    <!-- Small custom styles -->
+    <!-- Custom styles -->
     <style>
-      /* subtle container width */
-      .page-container { max-width: 1100px; margin: 0 auto; padding: 1rem; }
-      /* a little nicer focus ring */
-      :focus { outline: 2px solid rgba(59,130,246,0.45); outline-offset: 2px; }
-      /* toast */
+      :root {
+        --primary: #4f46e5;
+        --primary-light: #6366f1;
+        --primary-dark: #4338ca;
+        --accent: #ec4899;
+        --text: #1f2937;
+        --text-light: #6b7280;
+        --bg: #f9fafb;
+        --card: #ffffff;
+      }
+      
+      .page-container { 
+        max-width: 1200px; 
+        margin: 0 auto; 
+        padding: 0 1.5rem; 
+      }
+      
+      /* Improved focus styles */
+      :focus { 
+        outline: 2px solid rgba(99, 102, 241, 0.5); 
+        outline-offset: 2px; 
+      }
+      
+      /* Toast improvements */
       #toast {
         position: fixed;
-        right: 1rem;
-        bottom: 1.25rem;
+        right: 1.5rem;
+        bottom: 1.5rem;
         z-index: 9999;
-        min-width: 220px;
+        min-width: 280px;
+        max-width: calc(100vw - 3rem);
+      }
+      
+      /* Smooth transitions */
+      .transition-all {
+        transition: all 0.3s ease;
+      }
+      
+      /* Glass effect for header */
+      .glass {
+        backdrop-filter: blur(10px);
+        background-color: rgba(255, 255, 255, 0.85);
+      }
+      
+      /* Card hover effects */
+      .card-hover {
+        transition: all 0.3s ease;
+      }
+      
+      .card-hover:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      }
+      
+      /* Mobile menu animation */
+      @keyframes slideDown {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      
+      .mobile-menu-open {
+        animation: slideDown 0.3s ease forwards;
       }
     </style>
   </head>
-  <body class="bg-gray-50 text-gray-800">
-    <header class="bg-white shadow-sm sticky top-0 z-20">
-      <div class="page-container flex items-center justify-between gap-4 py-4">
-        <a href="/" class="flex items-center gap-3">
-          <div class="h-10 w-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold">P</div>
-          <div>
-            <h1 class="text-lg font-semibold leading-tight">Productivity Suite</h1>
-            <p class="text-xs text-gray-500">CLI + Web Tools</p>
+  <body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="glass shadow-sm sticky top-0 z-50 border-b border-gray-200">
+      <div class="page-container">
+        <div class="flex items-center justify-between py-4">
+          <!-- Logo -->
+          <a href="/" class="flex items-center gap-3 group">
+            <div class="h-10 w-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center text-white font-bold shadow-md group-hover:shadow-lg transition-all">P</div>
+            <div>
+              <h1 class="text-xl font-bold leading-tight bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Productivity Suite</h1>
+              <p class="text-xs text-gray-500">Streamlined tools for efficiency</p>
+            </div>
+          </a>
+
+          <!-- Desktop Navigation -->
+          <nav class="hidden lg:flex items-center gap-1">
+            <a class="px-4 py-2 rounded-lg font-medium text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 transition-all" href="/">Dashboard</a>
+            <a class="px-4 py-2 rounded-lg font-medium text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 transition-all" href="/notes">Notes</a>
+            <a class="px-4 py-2 rounded-lg font-medium text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 transition-all" href="/timer">Timer</a>
+            <a class="px-4 py-2 rounded-lg font-medium text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 transition-all" href="/calc">Calculator</a>
+            <a class="px-4 py-2 rounded-lg font-medium text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 transition-all" href="/organizer">Organizer</a>
+          </nav>
+
+          <!-- Mobile menu button -->
+          <div class="lg:hidden">
+            <button id="mobile-menu-button" aria-expanded="false" aria-controls="mobile-menu" 
+                    class="p-2 rounded-lg hover:bg-gray-100 focus:ring-2 focus:ring-indigo-200 transition-all">
+              <svg id="hamburger" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+              <svg id="close" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
-        </a>
-
-        <!-- Desktop nav -->
-        <nav class="hidden md:flex items-center gap-4 text-sm">
-          <a class="px-3 py-2 rounded hover:bg-gray-100" href="/">Dashboard</a>
-          <a class="px-3 py-2 rounded hover:bg-gray-100" href="/notes">Notes</a>
-          <a class="px-3 py-2 rounded hover:bg-gray-100" href="/timer">Timer</a>
-          <a class="px-3 py-2 rounded hover:bg-gray-100" href="/calc">Calculator</a>
-          <a class="px-3 py-2 rounded hover:bg-gray-100" href="/organizer">Organizer</a>
-        </nav>
-
-        <!-- Mobile menu button -->
-        <div class="md:hidden">
-          <button id="mobile-menu-button" aria-expanded="false" aria-controls="mobile-menu" class="p-2 rounded-md hover:bg-gray-100 focus:ring-2">
-            <svg id="hamburger" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-            <svg id="close" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
         </div>
       </div>
 
-      <!-- Mobile menu (hidden by default) -->
-      <div id="mobile-menu" class="md:hidden hidden bg-white border-t">
-        <div class="px-4 pb-4 space-y-1">
-          <a class="block px-3 py-2 rounded hover:bg-gray-100" href="/">Dashboard</a>
-          <a class="block px-3 py-2 rounded hover:bg-gray-100" href="/notes">Notes</a>
-          <a class="block px-3 py-2 rounded hover:bg-gray-100" href="/timer">Timer</a>
-          <a class="block px-3 py-2 rounded hover:bg-gray-100" href="/calc">Calculator</a>
-          <a class="block px-3 py-2 rounded hover:bg-gray-100" href="/organizer">Organizer</a>
+      <!-- Mobile menu -->
+      <div id="mobile-menu" class="lg:hidden hidden bg-white border-t border-gray-200">
+        <div class="px-4 pb-4 pt-2 space-y-1">
+          <a class="block px-4 py-3 rounded-lg font-medium text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 transition-all" href="/">Dashboard</a>
+          <a class="block px-4 py-3 rounded-lg font-medium text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 transition-all" href="/notes">Notes</a>
+          <a class="block px-4 py-3 rounded-lg font-medium text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 transition-all" href="/timer">Timer</a>
+          <a class="block px-4 py-3 rounded-lg font-medium text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 transition-all" href="/calc">Calculator</a>
+          <a class="block px-4 py-3 rounded-lg font-medium text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 transition-all" href="/organizer">Organizer</a>
         </div>
       </div>
     </header>
 
-    <main class="page-container py-6">
+    <!-- Main Content -->
+    <main class="page-container py-8 flex-grow">
       {% block content %}{% endblock %}
     </main>
 
-    <footer class="page-container text-sm text-gray-500 py-6">
-      <div class="flex items-center justify-between">
-        <div>Made with ❤️ — CLI + Web</div>
-        <div>Version: 0.1</div>
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 mt-12">
+      <div class="page-container">
+        <div class="flex flex-col md:flex-row items-center justify-between py-6 gap-4">
+          <div class="flex items-center gap-2 text-gray-600">
+            <span>Made with</span>
+            <span class="text-red-500">❤️</span>
+            <span>— Productivity Suite</span>
+          </div>
+          <div class="flex items-center gap-6 text-sm text-gray-500">
+            <span>Version: 0.1</span>
+            <a href="#" class="hover:text-indigo-600 transition-colors">Privacy</a>
+            <a href="#" class="hover:text-indigo-600 transition-colors">Terms</a>
+          </div>
+        </div>
       </div>
     </footer>
 
     <!-- Toast container -->
     <div id="toast" aria-live="polite" class="pointer-events-none"></div>
 
-    <!-- Small script for mobile menu + toast helper -->
+    <!-- JavaScript -->
     <script>
+      // Mobile menu functionality
       const btn = document.getElementById('mobile-menu-button');
       const menu = document.getElementById('mobile-menu');
       const ham = document.getElementById('hamburger');
-      const close = document.getElementById('close');
+      const closeIcon = document.getElementById('close');
+      
       if (btn) {
         btn.addEventListener('click', () => {
-          menu.classList.toggle('hidden');
+          const isHidden = menu.classList.contains('hidden');
+          
+          if (isHidden) {
+            menu.classList.remove('hidden');
+            setTimeout(() => {
+              menu.classList.add('mobile-menu-open');
+            }, 10);
+          } else {
+            menu.classList.remove('mobile-menu-open');
+            setTimeout(() => {
+              menu.classList.add('hidden');
+            }, 300);
+          }
+          
           ham.classList.toggle('hidden');
-          close.classList.toggle('hidden');
+          closeIcon.classList.toggle('hidden');
         });
       }
 
-      // Toast helper
-      function showToast(message, duration=3500) {
-        const c = document.getElementById('toast');
-        const el = document.createElement('div');
-        el.className = 'pointer-events-auto bg-white border rounded shadow px-4 py-2 mb-2';
-        el.innerHTML = '<div class="text-sm font-medium">'+message+'</div>';
-        c.appendChild(el);
-        setTimeout(()=> {
-          el.classList.add('opacity-0', 'transition', 'duration-500');
-          setTimeout(()=> c.removeChild(el), 500);
+      // Improved Toast helper
+      function showToast(message, type = 'info', duration = 4000) {
+        const container = document.getElementById('toast');
+        const toast = document.createElement('div');
+        
+        // Set toast styles based on type
+        let bgColor = 'bg-white';
+        let borderColor = 'border-gray-200';
+        let textColor = 'text-gray-800';
+        
+        if (type === 'success') {
+          bgColor = 'bg-green-50';
+          borderColor = 'border-green-200';
+          textColor = 'text-green-800';
+        } else if (type === 'error') {
+          bgColor = 'bg-red-50';
+          borderColor = 'border-red-200';
+          textColor = 'text-red-800';
+        } else if (type === 'warning') {
+          bgColor = 'bg-yellow-50';
+          borderColor = 'border-yellow-200';
+          textColor = 'text-yellow-800';
+        }
+        
+        toast.className = `pointer-events-auto ${bgColor} border ${borderColor} rounded-xl shadow-lg px-4 py-3 mb-3 transition-all transform translate-x-full`;
+        toast.innerHTML = `<div class="text-sm font-medium ${textColor}">${message}</div>`;
+        
+        container.appendChild(toast);
+        
+        // Animate in
+        setTimeout(() => {
+          toast.classList.remove('translate-x-full');
+        }, 10);
+        
+        // Remove after duration
+        setTimeout(() => {
+          toast.classList.add('opacity-0', 'translate-x-full');
+          setTimeout(() => {
+            if (container.contains(toast)) {
+              container.removeChild(toast);
+            }
+          }, 500);
         }, duration);
       }
 
-      // Allow server responses to dispatch a custom event: dispatchEvent(new CustomEvent('show-toast',{detail:{message:'Saved'}}))
-      document.body.addEventListener('show-toast', function(ev){ const m = ev && ev.detail && ev.detail.message ? ev.detail.message : 'Done'; showToast(m); });
-
-      // HTMX global handler: listen for "htmx:afterSwap" to auto-run inline scripts returned by server (HTMX already evals <script> tags by default)
-      // No extra action required here but left for clarity
+      // Allow server responses to dispatch custom toast events
+      document.body.addEventListener('show-toast', function(ev) {
+        const message = ev && ev.detail && ev.detail.message ? ev.detail.message : 'Done';
+        const type = ev && ev.detail && ev.detail.type ? ev.detail.type : 'info';
+        showToast(message, type);
+      });
     </script>
   </body>
 </html>

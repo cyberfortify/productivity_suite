@@ -206,15 +206,28 @@ def timer_active_json():
 # Calculator pages (HTMX-enabled)
 @app.get("/calc", response_class=HTMLResponse)
 def calc_page(request: Request):
-    return templates.TemplateResponse("calc.html", {"request": request})
+    return templates.TemplateResponse("calc.html", {"request": request, "expr": ""})
 
 @app.post("/calc", response_class=HTMLResponse)
 def calc_eval(request: Request, expr: str = Form(...)):
+    """
+    Return the result partial. Always include 'expr' in the template context
+    so the partial can safely call expr|tojson.
+    """
     try:
         result = calc_service.calc(expr)
-        return templates.TemplateResponse("calc_result_partial.html", {"request": request, "result": result})
+        return templates.TemplateResponse(
+            "calc_result_partial.html",
+            {"request": request, "expr": expr, "result": result},
+        )
     except Exception as e:
-        return templates.TemplateResponse("calc_result_partial.html", {"request": request, "error": str(e)})
+        # return the partial with the error message but still include expr
+        return templates.TemplateResponse(
+            "calc_result_partial.html",
+            {"request": request, "expr": expr, "error": str(e)},
+            status_code=400,
+        )
+
 
 # Organizer pages (HTMX-enabled preview/apply)
 @app.get("/organizer", response_class=HTMLResponse)

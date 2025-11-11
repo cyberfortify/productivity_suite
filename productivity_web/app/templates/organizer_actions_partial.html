@@ -1,19 +1,93 @@
 {# organizer_actions_partial.html #}
 {% if message %}
-  <div class="p-3 rounded bg-gray-50 text-sm text-gray-700">{{ message }}</div>
+  <div class="p-4 rounded-xl border {% if 'error' in message|lower %}bg-red-50 border-red-200 text-red-700{% else %}bg-green-50 border-green-200 text-green-700{% endif %}">
+    <div class="flex items-center">
+      {% if 'error' in message|lower %}
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      {% else %}
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      {% endif %}
+      <div class="text-sm font-medium">{{ message }}</div>
+    </div>
+  </div>
 {% endif %}
 
 {% if actions %}
-  <div class="mt-3">
-    <h4 class="text-sm font-medium mb-2">Actions</h4>
-    <ul class="space-y-1 text-sm">
-      {% for src, tgt in actions %}
-        <li class="flex items-center justify-between">
-          <span class="truncate">{{ src }}</span>
-          <span class="text-xs text-gray-500">→ {{ tgt }}</span>
-        </li>
-      {% endfor %}
-    </ul>
+  <div class="mt-6 bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
+    <div class="bg-gray-100 px-4 py-3 border-b border-gray-200">
+      <h4 class="text-sm font-semibold text-gray-900 flex items-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        Planned Actions ({{ actions|length }} files)
+      </h4>
+    </div>
+    
+    <div class="max-h-96 overflow-y-auto">
+      <div class="divide-y divide-gray-200">
+        {% for src, tgt in actions %}
+        <div class="p-4 hover:bg-white transition-colors">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
+            <!-- Source File -->
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center text-sm text-gray-600 mb-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Source
+              </div>
+              <div class="text-sm font-mono text-gray-900 truncate" title="{{ src }}">
+                {{ src }}
+              </div>
+            </div>
+            
+            <!-- Arrow (hidden on small screens) -->
+            <div class="hidden md:flex items-center justify-center px-2 text-gray-400">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              </svg>
+            </div>
+            
+            <!-- Target Folder -->
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center text-sm text-gray-600 mb-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                </svg>
+                Destination
+              </div>
+              <div class="text-sm font-mono text-gray-900 truncate" title="{{ tgt }}">
+                {{ tgt }}
+              </div>
+            </div>
+          </div>
+          
+          <!-- Mobile arrow (visible only on small screens) -->
+          <div class="flex md:hidden items-center justify-center py-2 text-gray-400">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transform rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+            </svg>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  
+  <!-- Summary -->
+  <div class="mt-4 text-sm text-gray-600">
+    <div class="flex items-center justify-between">
+      <div>
+        Found <span class="font-semibold text-gray-900">{{ actions|length }}</span> files to organize
+      </div>
+      <div class="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full">
+        {{ actions|length }} files
+      </div>
+    </div>
   </div>
 {% endif %}
 
@@ -22,7 +96,8 @@
     // Use tojson so the produced JS is syntactically valid
     const _msg = {{ message|tojson if message else 'null' }};
     if (_msg) {
-      showToast(_msg);
+      const type = _msg.toLowerCase().includes('error') ? 'error' : 'success';
+      showToast(_msg, type);
     }
   })();
 </script>

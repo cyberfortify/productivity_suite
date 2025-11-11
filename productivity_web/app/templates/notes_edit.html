@@ -1,10 +1,62 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Edit Note</h2>
-<form method="post" action="/notes/{{ note.id }}/edit">
-  <label>Title<br><input name="title" value="{{ note.title }}"></label><br>
-  <label>Body<br><textarea name="body">{{ note.body }}</textarea></label><br>
-  <label>Tags (comma separated)<br><input name="tags" value="{{ note.tags }}"></label><br>
-  <button type="submit">Save</button>
-</form>
+<div class="max-w-3xl mx-auto">
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Edit Note</h1>
+    <p class="text-gray-600 mt-1">Update your note content</p>
+  </div>
+
+  <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="p-1 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
+    <form method="post" action="/notes/{{ note.id }}/edit" class="p-6 space-y-6">
+      <div>
+        <label for="title" class="block text-sm font-medium text-gray-700 mb-2">Title</label>
+        <input 
+          id="title"
+          name="title" 
+          value="{{ note.title }}"
+          required 
+          class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition-colors" 
+        />
+      </div>
+      
+      <div>
+        <label for="body" class="block text-sm font-medium text-gray-700 mb-2">Content</label>
+        <textarea 
+          id="body"
+          name="body" 
+          rows="8"
+          class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition-colors resize-vertical"
+        >{{ note.body }}</textarea>
+      </div>
+      
+      <div>
+        <label for="tags" class="block text-sm font-medium text-gray-700 mb-2">
+          Tags <span class="text-gray-500 font-normal">(comma separated)</span>
+        </label>
+        <input 
+          id="tags"
+          name="tags" 
+          value="{{ note.tags }}"
+          class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition-colors" 
+        />
+      </div>
+      
+      <div class="flex flex-col sm:flex-row gap-3 pt-4">
+        <button 
+          type="submit" 
+          class="flex-1 sm:flex-none px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium rounded-lg shadow-sm hover:shadow-md transition-all hover:from-indigo-700 hover:to-purple-700"
+        >
+          Update Note
+        </button>
+        <a 
+          href="/notes/{{ note.id }}" 
+          class="flex-1 sm:flex-none px-6 py-3 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg shadow-sm hover:bg-gray-50 transition-all text-center"
+        >
+          Cancel
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
 {% endblock %}

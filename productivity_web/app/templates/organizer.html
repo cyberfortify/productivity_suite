@@ -1,28 +1,113 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="max-w-2xl mx-auto bg-white p-6 rounded-lg shadow">
-  <h2 class="text-xl font-semibold mb-3">File Organizer</h2>
-  <p class="text-sm text-gray-500 mb-4">Preview folder actions first. Then click Apply to move files.</p>
+<div class="max-w-4xl mx-auto">
+  <!-- Header -->
+  <div class="mb-8 text-center">
+    <h1 class="text-3xl font-bold text-gray-900">File Organizer</h1>
+    <p class="text-gray-600 mt-2">Automatically organize files by type with preview before applying changes</p>
+  </div>
 
-  <form id="org-preview-form" hx-post="/organizer/preview" hx-target="#organizer-actions" hx-swap="innerHTML" class="space-y-3">
-    <input name="source" placeholder="Full path to folder (e.g. C:\Users\you\Downloads)" class="w-full rounded border px-3 py-2" required/>
-    <div class="flex gap-2">
-      <button class="px-4 py-2 bg-gray-200 rounded">Preview</button>
-      <button type="button" id="apply-confirm" class="px-4 py-2 bg-red-500 text-white rounded">Apply (move files)</button>
+  <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="p-1 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
+    
+    <div class="p-6 md:p-8">
+      <!-- Folder Input Form -->
+      <form id="org-preview-form" hx-post="/organizer/preview" hx-target="#organizer-actions" hx-swap="innerHTML" class="space-y-4">
+        <div>
+          <label for="source" class="block text-sm font-medium text-gray-700 mb-2">Source Folder Path</label>
+          <input 
+            id="source"
+            name="source" 
+            placeholder="e.g., C:\Users\you\Downloads or /home/user/Downloads"
+            class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition-colors font-mono text-sm"
+            required
+          />
+          <p class="text-xs text-gray-500 mt-2">
+            Enter the full path to the folder you want to organize
+          </p>
+        </div>
+        
+        <div class="flex flex-col sm:flex-row gap-3 pt-2">
+          <button 
+            type="submit"
+            class="flex-1 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium rounded-lg shadow-sm hover:shadow-md transition-all hover:from-indigo-700 hover:to-purple-700 flex items-center justify-center"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Preview Actions
+          </button>
+          <button 
+            type="button" 
+            id="apply-confirm" 
+            class="flex-1 px-6 py-3 bg-gradient-to-r from-red-600 to-pink-600 text-white font-medium rounded-lg shadow-sm hover:shadow-md transition-all hover:from-red-700 hover:to-pink-700 flex items-center justify-center"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            Apply Changes
+          </button>
+        </div>
+      </form>
+
+      <!-- Info Box -->
+      <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div class="flex items-start">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div class="text-sm text-blue-700">
+            <strong>How it works:</strong> First use "Preview Actions" to see what files will be moved. 
+            Then click "Apply Changes" to actually move files to organized folders by extension.
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions Preview/Results Area -->
+      <div id="organizer-actions" class="mt-6">
+        <!-- This will be populated by HTMX responses -->
+      </div>
     </div>
-  </form>
-
-  <!-- Separate area for preview/apply results -->
-  <div id="organizer-actions" class="mt-4"></div>
+  </div>
 </div>
 
 <script>
   document.getElementById('apply-confirm').addEventListener('click', function(){
     const form = document.getElementById('org-preview-form');
     const source = form.querySelector('input[name="source"]').value;
-    if(!source) { showToast('Please enter a folder path'); return; }
-    if(!confirm('Are you sure you want to move files in: ' + source + '\\nThis operation cannot be undone easily.')) return;
-    htmx.ajax('POST', '/organizer/apply', {values: {source: source}, target: '#organizer-actions', swap: 'innerHTML'});
+    
+    if(!source) { 
+      showToast('Please enter a folder path first', 'error');
+      return; 
+    }
+    
+    if(!confirm('Are you sure you want to move files in:\n\n' + source + '\n\nThis operation cannot be undone easily.')) {
+      return;
+    }
+    
+    // Show loading state
+    const applyBtn = document.getElementById('apply-confirm');
+    const originalText = applyBtn.innerHTML;
+    applyBtn.innerHTML = `
+      <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      Applying...
+    `;
+    applyBtn.disabled = true;
+    
+    htmx.ajax('POST', '/organizer/apply', {
+      values: {source: source}, 
+      target: '#organizer-actions', 
+      swap: 'innerHTML'
+    }).then(() => {
+      // Restore button state after a delay
+      setTimeout(() => {
+        applyBtn.innerHTML = originalText;
+        applyBtn.disabled = false;
+      }, 1000);
+    });
   });
 </script>
 {% endblock %}
