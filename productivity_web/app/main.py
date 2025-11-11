@@ -61,13 +61,24 @@ def startup_event():
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+# -----------------------
+# Notes pages (replace existing notes block with this)
+# -----------------------
 
-# Notes pages
 @app.get("/notes", response_class=HTMLResponse)
 def notes_list(request: Request):
     items = notes_service.list_notes()
     return templates.TemplateResponse("notes_list.html", {"request": request, "notes": items})
 
+
+# Show add form (GET) — MUST appear before /notes/{note_id}
+@app.get("/notes/add", response_class=HTMLResponse)
+def notes_add_form(request: Request):
+    # render the add form (template can accept title/body/tags/error if present)
+    return templates.TemplateResponse("notes_add.html", {"request": request, "title": "", "body": "", "tags": "", "error": None})
+
+
+# Add note (POST)
 @app.post("/notes/add", response_class=HTMLResponse)
 def notes_add(request: Request, title: str = Form(...), body: str = Form(""), tags: str = Form("")):
     """
@@ -100,11 +111,10 @@ def notes_add(request: Request, title: str = Form(...), body: str = Form(""), ta
         # redirect to notes list on success
         return RedirectResponse(url="/notes", status_code=303)
 
-    except Exception as exc:
+    except Exception:
         # log full traceback to server logs (Render will capture this)
         logger.exception("Failed to add note: title=%s", title)
-        # show the add form again with a friendly error message
-        # render the notes_add.html template and pass the user inputs back
+        # show the add form again with a friendly error message and prefilled inputs
         return templates.TemplateResponse(
             "notes_add.html",
             {
@@ -118,26 +128,34 @@ def notes_add(request: Request, title: str = Form(...), body: str = Form(""), ta
         )
 
 
+# Show single note (note_id must be int)
 @app.get("/notes/{note_id}", response_class=HTMLResponse)
 def notes_show(request: Request, note_id: int):
     n = notes_service.get_note(note_id)
     return templates.TemplateResponse("notes_show.html", {"request": request, "note": n})
 
+
+# Edit form
 @app.get("/notes/{note_id}/edit", response_class=HTMLResponse)
 def notes_edit_form(request: Request, note_id: int):
     n = notes_service.get_note(note_id)
     return templates.TemplateResponse("notes_edit.html", {"request": request, "note": n})
 
-@app.post("/notes/{note_id}/edit")
+
+# Edit POST
+@app.post("/notes/{note_id}/edit", response_class=HTMLResponse)
 def notes_edit(request: Request, note_id: int, title: str = Form(None), body: str = Form(None), tags: str = Form(None)):
     tags_list = [t.strip() for t in tags.split(",")] if tags is not None and tags.strip() else None
     notes_service.edit_note(note_id, title=title, body=body, tags=tags_list)
     return RedirectResponse(url=f"/notes/{note_id}", status_code=303)
 
+
+# Delete
 @app.post("/notes/{note_id}/delete")
 def notes_delete(request: Request, note_id: int):
     notes_service.delete_note(note_id)
     return RedirectResponse(url="/notes", status_code=303)
+
 
 # HTMX: notes search (returns partial)
 @app.get("/notes/search", response_class=HTMLResponse)
