@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-2xl mx-auto bg-white p-6 rounded-lg shadow">
+  <h2 class="text-xl font-semibold mb-3">File Organizer</h2>
+  <p class="text-sm text-gray-500 mb-4">Preview folder actions first. Then click Apply to move files.</p>
+
+  <form id="org-preview-form" hx-post="/organizer/preview" hx-target="#organizer-actions" hx-swap="innerHTML" class="space-y-3">
+    <input name="source" placeholder="Full path to folder (e.g. C:\Users\you\Downloads)" class="w-full rounded border px-3 py-2" required/>
+    <div class="flex gap-2">
+      <button class="px-4 py-2 bg-gray-200 rounded">Preview</button>
+      <button type="button" id="apply-confirm" class="px-4 py-2 bg-red-500 text-white rounded">Apply (move files)</button>
+    </div>
+  </form>
+
+  <!-- Separate area for preview/apply results -->
+  <div id="organizer-actions" class="mt-4"></div>
+</div>
+
+<script>
+  document.getElementById('apply-confirm').addEventListener('click', function(){
+    const form = document.getElementById('org-preview-form');
+    const source = form.querySelector('input[name="source"]').value;
+    if(!source) { showToast('Please enter a folder path'); return; }
+    if(!confirm('Are you sure you want to move files in: ' + source + '\\nThis operation cannot be undone easily.')) return;
+    htmx.ajax('POST', '/organizer/apply', {values: {source: source}, target: '#organizer-actions', swap: 'innerHTML'});
+  });
+</script>
+{% endblock %}

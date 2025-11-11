@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Productivity Suite</title>
+
+    <!-- Tailwind CDN (fast prototyping) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.2"></script>
+
+    <!-- Small custom styles -->
+    <style>
+      /* subtle container width */
+      .page-container { max-width: 1100px; margin: 0 auto; padding: 1rem; }
+      /* a little nicer focus ring */
+      :focus { outline: 2px solid rgba(59,130,246,0.45); outline-offset: 2px; }
+      /* toast */
+      #toast {
+        position: fixed;
+        right: 1rem;
+        bottom: 1.25rem;
+        z-index: 9999;
+        min-width: 220px;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-50 text-gray-800">
+    <header class="bg-white shadow-sm sticky top-0 z-20">
+      <div class="page-container flex items-center justify-between gap-4 py-4">
+        <a href="/" class="flex items-center gap-3">
+          <div class="h-10 w-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold">P</div>
+          <div>
+            <h1 class="text-lg font-semibold leading-tight">Productivity Suite</h1>
+            <p class="text-xs text-gray-500">CLI + Web Tools</p>
+          </div>
+        </a>
+
+        <!-- Desktop nav -->
+        <nav class="hidden md:flex items-center gap-4 text-sm">
+          <a class="px-3 py-2 rounded hover:bg-gray-100" href="/">Dashboard</a>
+          <a class="px-3 py-2 rounded hover:bg-gray-100" href="/notes">Notes</a>
+          <a class="px-3 py-2 rounded hover:bg-gray-100" href="/timer">Timer</a>
+          <a class="px-3 py-2 rounded hover:bg-gray-100" href="/calc">Calculator</a>
+          <a class="px-3 py-2 rounded hover:bg-gray-100" href="/organizer">Organizer</a>
+        </nav>
+
+        <!-- Mobile menu button -->
+        <div class="md:hidden">
+          <button id="mobile-menu-button" aria-expanded="false" aria-controls="mobile-menu" class="p-2 rounded-md hover:bg-gray-100 focus:ring-2">
+            <svg id="hamburger" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+            <svg id="close" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile menu (hidden by default) -->
+      <div id="mobile-menu" class="md:hidden hidden bg-white border-t">
+        <div class="px-4 pb-4 space-y-1">
+          <a class="block px-3 py-2 rounded hover:bg-gray-100" href="/">Dashboard</a>
+          <a class="block px-3 py-2 rounded hover:bg-gray-100" href="/notes">Notes</a>
+          <a class="block px-3 py-2 rounded hover:bg-gray-100" href="/timer">Timer</a>
+          <a class="block px-3 py-2 rounded hover:bg-gray-100" href="/calc">Calculator</a>
+          <a class="block px-3 py-2 rounded hover:bg-gray-100" href="/organizer">Organizer</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="page-container py-6">
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer class="page-container text-sm text-gray-500 py-6">
+      <div class="flex items-center justify-between">
+        <div>Made with ❤️ — CLI + Web</div>
+        <div>Version: 0.1</div>
+      </div>
+    </footer>
+
+    <!-- Toast container -->
+    <div id="toast" aria-live="polite" class="pointer-events-none"></div>
+
+    <!-- Small script for mobile menu + toast helper -->
+    <script>
+      const btn = document.getElementById('mobile-menu-button');
+      const menu = document.getElementById('mobile-menu');
+      const ham = document.getElementById('hamburger');
+      const close = document.getElementById('close');
+      if (btn) {
+        btn.addEventListener('click', () => {
+          menu.classList.toggle('hidden');
+          ham.classList.toggle('hidden');
+          close.classList.toggle('hidden');
+        });
+      }
+
+      // Toast helper
+      function showToast(message, duration=3500) {
+        const c = document.getElementById('toast');
+        const el = document.createElement('div');
+        el.className = 'pointer-events-auto bg-white border rounded shadow px-4 py-2 mb-2';
+        el.innerHTML = '<div class="text-sm font-medium">'+message+'</div>';
+        c.appendChild(el);
+        setTimeout(()=> {
+          el.classList.add('opacity-0', 'transition', 'duration-500');
+          setTimeout(()=> c.removeChild(el), 500);
+        }, duration);
+      }
+
+      // Allow server responses to dispatch a custom event: dispatchEvent(new CustomEvent('show-toast',{detail:{message:'Saved'}}))
+      document.body.addEventListener('show-toast', function(ev){ const m = ev && ev.detail && ev.detail.message ? ev.detail.message : 'Done'; showToast(m); });
+
+      // HTMX global handler: listen for "htmx:afterSwap" to auto-run inline scripts returned by server (HTMX already evals <script> tags by default)
+      // No extra action required here but left for clarity
+    </script>
+  </body>
+</html>

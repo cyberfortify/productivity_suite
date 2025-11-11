@@ -1,0 +1,63 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+dist/
+build/
+
+# Virtualenv
+venv/
+env/
+ENV/
+*.env
+
+# IDEs
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Pytest caches
+.pytest_cache/
+
+# SQLite DBs and local runtime files
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# Logs
+*.log
+
+# macOS
+.Spotlight-V100
+.Trashes
+
+# Windows
+ehthumbs.db
+Desktop.ini
+
+# node / web build (if any)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# zip / archives
+*.zip
+
+# coverage reports
+htmlcov/
+.coverage
+
+# data / exports (if any)
+*.csv
+*.tar.gz
+
+# productivity specific
+.productivity_db
+productivity_web.zip

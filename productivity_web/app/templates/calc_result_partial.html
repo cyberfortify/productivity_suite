@@ -1,0 +1,22 @@
+{# calc_result_partial.html #}
+{% if result is defined %}
+  <div class="p-3 bg-gray-50 rounded">
+    <div class="text-sm text-gray-500">Result</div>
+    <div class="text-2xl font-medium">{{ result }}</div>
+  </div>
+{% elif error is defined %}
+  <div class="p-3 bg-red-50 rounded text-red-700">{{ error }}</div>
+{% endif %}
+
+<script>
+  (function(){
+    // Build a JS-safe string from Jinja using tojson, so editor sees valid JS.
+    {% if result is defined %}
+      const _msg = {{ "Calculated"|tojson }};
+      showToast(_msg);
+    {% elif error is defined %}
+      const _msg = {{ ("Error: " ~ error)|tojson }};
+      showToast(_msg);
+    {% endif %}
+  })();
+</script>

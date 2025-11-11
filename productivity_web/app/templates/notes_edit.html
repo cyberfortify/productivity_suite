@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Edit Note</h2>
+<form method="post" action="/notes/{{ note.id }}/edit">
+  <label>Title<br><input name="title" value="{{ note.title }}"></label><br>
+  <label>Body<br><textarea name="body">{{ note.body }}</textarea></label><br>
+  <label>Tags (comma separated)<br><input name="tags" value="{{ note.tags }}"></label><br>
+  <button type="submit">Save</button>
+</form>
+{% endblock %}

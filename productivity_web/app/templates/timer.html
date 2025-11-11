@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="grid gap-6 lg:grid-cols-2">
+  <div class="bg-white p-6 rounded-lg shadow">
+    <h3 class="text-lg font-semibold">Start Timer</h3>
+
+    {# show message via toast when present #}
+    {% if message %}
+    <script>
+      (function(){
+        const msg = {{ message|tojson }};
+        if (typeof showToast === "function") { showToast(msg); }
+      })();
+    </script>
+    {% endif %}
+
+    <form id="timer-start-form" method="post" action="/timer/start" class="mt-3 space-y-3">
+      <div>
+        <label class="block text-sm">Seconds</label>
+        <input name="seconds" type="number" min="1" required class="mt-1 w-full rounded border px-3 py-2" />
+      </div>
+      <div>
+        <label class="block text-sm">Label</label>
+        <input name="label" class="mt-1 w-full rounded border px-3 py-2" />
+      </div>
+      <div>
+        <button id="timer-start-btn" class="px-4 py-2 bg-indigo-600 text-white rounded">Start</button>
+      </div>
+    </form>
+
+    <div class="mt-6">
+      <h4 class="text-sm font-medium text-gray-600">Active Timers</h4>
+      <div id="active-timers" class="mt-2 space-y-2">
+        {% if active %}
+          {% for a in active %}
+          <div data-tid="{{ a.id }}" data-start="{{ a.started_at }}" data-seconds="{{ a.seconds }}" class="flex items-center justify-between bg-gray-50 p-3 rounded">
+            <div>
+              <div class="font-medium text-sm">{{ a.label or "Timer" }}</div>
+              <div class="text-xs text-gray-500"><span class="timer-remaining">{{ a.seconds }}s</span></div>
+            </div>
+            <form method="post" action="/timer/stop" class="inline">
+              <input type="hidden" name="timer_id" value="{{ a.id }}">
+              <button class="px-3 py-1 text-sm bg-red-500 text-white rounded">Stop</button>
+            </form>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="text-sm text-gray-500">No active timers.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white p-6 rounded-lg shadow">
+    <h3 class="text-lg font-semibold">History</h3>
+    <div class="mt-4 overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="text-left text-gray-500">
+          <tr><th>ID</th><th>Label</th><th>Duration</th></tr>
+        </thead>
+        <tbody class="mt-2" id="history-body">
+          {% if history %}
+            {% for h in history %}
+            <tr class="border-t">
+              <td class="py-2">{{ h.id }}</td>
+              <td class="py-2">{{ h.label }}</td>
+              <td class="py-2">{{ h.duration_s }} s</td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr><td colspan="3" class="py-4 text-gray-500">No history yet.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Helper: escape HTML
+  function escapeHtml(unsafe) {
+    return String(unsafe)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  // Compute remaining seconds given total seconds and start epoch (seconds)
+  function computeRemaining(totalSeconds, startedAtEpoch) {
+    const now = Date.now() / 1000; // seconds float
+    const elapsed = now - Number(startedAtEpoch || 0);
+    const remaining = Math.max(0, Math.ceil(totalSeconds - elapsed));
+    return remaining;
+  }
+
+  // Update countdown texts for all active timer elements
+  function updateCountdownDisplays() {
+    const container = document.getElementById('active-timers');
+    if (!container) return;
+    const nodes = container.querySelectorAll('[data-tid]');
+    nodes.forEach(node => {
+      const start = node.getAttribute('data-start');
+      const seconds = Number(node.getAttribute('data-seconds') || 0);
+      const rem = computeRemaining(seconds, start);
+      const el = node.querySelector('.timer-remaining');
+      if (el) {
+        el.textContent = rem + 's';
+      }
+      // if remaining hits 0, optionally fade out (actual removal relies on poll)
+      if (rem <= 0) {
+        node.classList.add('opacity-60');
+      } else {
+        node.classList.remove('opacity-60');
+      }
+    });
+  }
+
+  // Refresh active timers & optionally update history_html via JSON endpoint
+  async function refreshActive() {
+    try {
+      const res = await fetch('/timer/active-json');
+      if (!res.ok) return;
+      const data = await res.json();
+      const active = data.active || [];
+      const container = document.getElementById('active-timers');
+      if (!container) return;
+
+      // Build DOM from active list
+      if (active.length === 0) {
+        container.innerHTML = '<div class="text-sm text-gray-500">No active timers.</div>';
+      } else {
+        // Map existing nodes by tid to minimize DOM churn
+        const existing = {};
+        container.querySelectorAll('[data-tid]').forEach(n => existing[n.getAttribute('data-tid')] = n);
+
+        // New container fragment
+        const frag = document.createDocumentFragment();
+        for (const a of active) {
+          const tid = a.id;
+          let node = existing[tid];
+          if (node) {
+            // update attributes
+            node.setAttribute('data-start', a.started_at);
+            node.setAttribute('data-seconds', a.seconds);
+            // update label and remaining placeholder
+            const labelEl = node.querySelector('.font-medium');
+            if (labelEl) labelEl.textContent = (a.label || 'Timer');
+            frag.appendChild(node);
+            delete existing[tid];
+          } else {
+            // create new node
+            const wrapper = document.createElement('div');
+            wrapper.setAttribute('data-tid', tid);
+            wrapper.setAttribute('data-start', a.started_at);
+            wrapper.setAttribute('data-seconds', a.seconds);
+            wrapper.className = 'flex items-center justify-between bg-gray-50 p-3 rounded';
+            wrapper.innerHTML = `
+              <div>
+                <div class="font-medium text-sm">${escapeHtml(a.label || 'Timer')}</div>
+                <div class="text-xs text-gray-500"><span class="timer-remaining">${escapeHtml(String(a.seconds))}s</span></div>
+              </div>
+              <form method="post" action="/timer/stop" class="inline">
+                <input type="hidden" name="timer_id" value="${escapeHtml(tid)}">
+                <button class="px-3 py-1 text-sm bg-red-500 text-white rounded">Stop</button>
+              </form>
+            `;
+            frag.appendChild(wrapper);
+          }
+        }
+
+        // Any remaining in `existing` are finished timers — remove them
+        for (const leftoverTid in existing) {
+          const n = existing[leftoverTid];
+          if (n && n.parentNode) n.parentNode.removeChild(n);
+        }
+
+        // Clear container and append frag
+        container.innerHTML = '';
+        container.appendChild(frag);
+      }
+
+      // update history rows if provided
+      if (data.history_html) {
+        const hb = document.getElementById('history-body');
+        if (hb) hb.innerHTML = data.history_html;
+      }
+
+      // Ensure countdowns are immediately updated
+      updateCountdownDisplays();
+
+    } catch (err) {
+      console.warn('refreshActive error', err);
+    }
+  }
+
+  // Polling: fetch active timers every 2s
+  let pollInterval = setInterval(refreshActive, 2000);
+  refreshActive();
+
+  // Tick countdowns every 1s for smooth countdown
+  let countdownTicker = setInterval(updateCountdownDisplays, 1000);
+  updateCountdownDisplays();
+
+  // Slight UX: disable the start button briefly when submitting
+  const form = document.getElementById('timer-start-form');
+  if (form) {
+    form.addEventListener('submit', function(e){
+      const btn = document.getElementById('timer-start-btn');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = 'Starting...';
+        setTimeout(()=>{ btn.disabled = false; btn.innerText = 'Start'; }, 1500);
+      }
+    });
+  }
+</script>
+{% endblock %}

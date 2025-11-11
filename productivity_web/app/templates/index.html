@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+  <a href="/notes" class="bg-white p-4 rounded-lg shadow hover:shadow-md transition">
+    <h3 class="text-lg font-semibold">Notes</h3>
+    <p class="text-sm text-gray-500 mt-1">Add, edit, search and manage your notes.</p>
+  </a>
+
+  <a href="/timer" class="bg-white p-4 rounded-lg shadow hover:shadow-md transition">
+    <h3 class="text-lg font-semibold">Timer</h3>
+    <p class="text-sm text-gray-500 mt-1">Start Pomodoro or custom timers and view history.</p>
+  </a>
+
+  <a href="/calc" class="bg-white p-4 rounded-lg shadow hover:shadow-md transition">
+    <h3 class="text-lg font-semibold">Calculator</h3>
+    <p class="text-sm text-gray-500 mt-1">Quick arithmetic evaluation.</p>
+  </a>
+
+  <a href="/organizer" class="bg-white p-4 rounded-lg shadow hover:shadow-md transition">
+    <h3 class="text-lg font-semibold">File Organizer</h3>
+    <p class="text-sm text-gray-500 mt-1">Preview & move files by extension in folders.</p>
+  </a>
+</div>
+{% endblock %}

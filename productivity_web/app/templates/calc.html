@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-xl mx-auto bg-white p-6 rounded-lg shadow">
+  <h2 class="text-xl font-semibold mb-4">Calculator</h2>
+  <form id="calc-form" hx-post="/calc" hx-target="#calc-result" hx-swap="innerHTML" class="space-y-3">
+    <input id="calc-expr" name="expr" value="{{ expr or '' }}" placeholder="e.g. 5*(2+3)" class="w-full rounded border px-3 py-2" required/>
+    <div class="flex gap-2">
+      <button id="calc-submit" class="px-4 py-2 bg-indigo-600 text-white rounded">Calculate</button>
+      <a href="/" class="px-4 py-2 bg-gray-100 rounded">Close</a>
+    </div>
+  </form>
+
+  <div id="calc-result" class="mt-4">
+    {% if result is defined %}
+      <div class="p-3 bg-gray-50 rounded">
+        <div class="text-sm text-gray-500">Result</div>
+        <div class="text-2xl font-medium">{{ result }}</div>
+      </div>
+    {% elif error is defined %}
+      <div class="p-3 bg-red-50 rounded text-red-700">{{ error }}</div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  const exprInput = document.getElementById('calc-expr');
+  const submitBtn = document.getElementById('calc-submit');
+  function checkCalc() {
+    const val = exprInput.value.trim();
+    submitBtn.disabled = !val;
+  }
+  exprInput.addEventListener('input', checkCalc);
+  checkCalc();
+
+  exprInput.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      submitBtn.click();
+    }
+  });
+</script>
+{% endblock %}
