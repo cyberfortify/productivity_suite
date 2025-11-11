@@ -7,9 +7,20 @@ from productivity import timer as timer_service
 from productivity import calculator as calc_service
 from productivity import organizer as organizer_service
 from pathlib import Path
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 import os
+import logging
+import sys
+from fastapi import HTTPException
+from fastapi.responses import PlainTextResponse
+import sqlite3
+
+# configure logging to stdout so Render captures it
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    stream=sys.stdout,
+)
+logger = logging.getLogger("productivity_web")
 
 app = FastAPI(title="Productivity Suite (Web)")
 
@@ -27,6 +38,15 @@ templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 # Mount static using absolute/robust path
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+# Global exception handler: log full traceback and return friendly message
+@app.exception_handler(Exception)
+async def all_exception_handler(request, exc):
+    # log full traceback
+    logger.exception("Unhandled exception for request %s %s", request.method, request.url)
+    # return a friendly PlainTextResponse (avoids exposing internals to users)
+    return PlainTextResponse("Internal Server Error (logged). Please check server logs.", status_code=500)
+
 
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
@@ -150,3 +170,26 @@ def organizer_apply(request: Request, source: str = Form(...)):
         return templates.TemplateResponse("organizer_actions_partial.html", {"request": request, "actions": actions_readable, "message": "Organizer applied successfully."})
     except Exception as e:
         return templates.TemplateResponse("organizer_actions_partial.html", {"request": request, "actions": None, "message": f"Error: {e}"})
+
+
+@app.get("/health", response_class=JSONResponse)
+def health():
+    # check DB path from env (fall back to default)
+    db_path = os.environ.get("PRODUCTIVITY_DB", "/opt/render/project/src/productivity_data/productivity_suite.db")
+    info = {"ok": True, "db_path": db_path, "db_exists": False, "tables": None}
+    try:
+        p = Path(db_path)
+        info["db_exists"] = p.exists()
+        # If DB exists, try to list tables
+        if p.exists():
+            conn = sqlite3.connect(str(p))
+            cur = conn.cursor()
+            cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
+            rows = cur.fetchall()
+            info["tables"] = [r[0] for r in rows]
+            conn.close()
+    except Exception as e:
+        logger.exception("Health-check DB error")
+        info["ok"] = False
+        info["error"] = str(e)
+    return info
