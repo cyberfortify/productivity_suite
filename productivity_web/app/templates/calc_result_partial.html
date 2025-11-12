@@ -41,50 +41,25 @@
 
 <script>
   (function(){
-    // Build a JS-safe string from Jinja using tojson, so editor sees valid JS.
-    {% if result is defined %}
-      const _msg = {{ ("Error: " ~ error)|tojson }};
-      showToast(_msg, 'success');
-      
-      // Add to recent calculations (if storage is available)
-      try {
-        const recentCalcs = JSON.parse(localStorage.getItem('recentCalculations') || '[]');
-        const calc = {
-          expr: {{ (expr | default('')) | tojson }},
-          result: {{ (result | default('')) | tojson }},
-          timestamp: new Date().toISOString()
-        };
-        
-        // Add to beginning and keep only last 5
-        recentCalcs.unshift(calc);
-        if (recentCalcs.length > 5) {
-          recentCalcs.splice(5);
-        }
-        
-        localStorage.setItem('recentCalculations', JSON.stringify(recentCalcs));
-      } catch (e) {
-        // Local storage not available or other error - ignore
-      }
-    {% elif error is defined %}
-      const _msg = {{ ("Error: " ~ error)|tojson }};
-      showToast(_msg, 'error');
-    {% endif %}
+    // Do not show any toast here.
+    // The main calc.html script will handle success/error notifications and recent storage.
   })();
-  
-  // Copy to clipboard function (redefine for partial context)
+
+  // Copy to clipboard helper (still needed for the button inside partial)
   function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {
       if (typeof showToast === "function") {
         showToast('Result copied to clipboard!', 'success');
       }
     }).catch(err => {
-      console.error('Failed to copy: ', err);
+      console.error('Failed to copy:', err);
       if (typeof showToast === "function") {
         showToast('Failed to copy result', 'error');
       }
     });
   }
 </script>
+
 
 <style>
   .animate-fade-in {

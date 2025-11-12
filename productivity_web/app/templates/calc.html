@@ -12,14 +12,7 @@
     <div class="p-1 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
 
     <div class="p-6 md:p-8">
-
-      <form
-        id="calc-form"
-        hx-post="/calc"
-        hx-target="#calc-result"
-        hx-swap="innerHTML"
-        class="space-y-4"
-      >
+      <form id="calc-form" hx-post="/calc" hx-swap="none" class="space-y-4">
         <div>
           <label
             for="calc-expr"
@@ -30,7 +23,7 @@
             id="calc-expr"
             name="expr"
             value="{{ expr or '' }}"
-            placeholder="e.g. 5*(2+3), sqrt(16), 2^3, sin(30)"
+            placeholder="0"
             class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500 transition-colors font-mono text-lg"
             required
           />
@@ -42,8 +35,7 @@
           class="grid grid-cols-4 gap-2 text-lg font-medium"
         >
           {% set buttons = [ '7', '8', '9', '/', '4', '5', '6', '*', '1', '2',
-          '3', '-', '0', '.', '^', '+', '(', ')', 'sqrt(', 'sin(', 'cos(',
-          'tan(', 'log(', 'ln(' ] %} {% for b in buttons %}
+          '3', '-', '0', '.', '+'] %} {% for b in buttons %}
           <button
             type="button"
             class="calc-btn px-3 py-2 bg-gray-100 hover:bg-indigo-100 rounded text-gray-800 hover:text-indigo-700 shadow-sm"
@@ -85,279 +77,327 @@
           </a>
         </div>
       </form>
-
-      <!-- Result Display -->
-      <div id="calc-result" class="mt-6">
-        {% if result is defined %}
-        <div
-          class="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 md:p-6"
-        >
-          <div class="flex items-center justify-between">
-            <div class="text-sm font-medium text-green-800">Result</div>
-            <button
-              onclick="copyToClipboard('{{ result }}')"
-              class="text-green-600 hover:text-green-800 transition-colors"
-              title="Copy to clipboard"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                />
-              </svg>
-            </button>
-          </div>
-          <div
-            class="text-2xl md:text-3xl font-bold text-green-900 mt-2 font-mono"
-          >
-            {{ result }}
-          </div>
-        </div>
-        {% elif error is defined %}
-        <div class="bg-red-50 border border-red-200 rounded-xl p-4 md:p-6">
-          <div class="flex items-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-5 w-5 text-red-600 mr-2"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <div class="text-sm font-medium text-red-800">
-              Calculation Error
-            </div>
-          </div>
-          <div class="text-red-700 mt-2 font-mono">{{ error }}</div>
-        </div>
-        {% endif %}
-      </div>
     </div>
   </div>
 </div>
 
 <script>
-/* Full calculator page script (resilient)
+  /* Full calculator page script (resilient)
    - finds submit button even when id missing
    - handles quick examples, keypad, clear, backspace
    - enables/disables submit
    - keyboard shortcuts, copy, recent calculations, HTMX hooks
 */
-(function () {
-  // --- Safe element lookups ---
-  const exprInput = document.getElementById("calc-expr");
-  // try to find submit by id, fallback to first submit button in the form
-  let submitBtn = document.getElementById("calc-submit");
-  if (!submitBtn) {
-    const form = document.getElementById("calc-form");
-    if (form) {
-      submitBtn = form.querySelector('button[type="submit"]');
-    }
-  }
-  const keypadContainer = document.getElementById("calc-keypad");
-  const QUICK_EXAMPLE_SELECTOR = ".quick-example";
-
-  // guard: if essential elements missing, stop early but not fatal
-  if (!exprInput) {
-    console.warn("Calculator script: required element missing (calc-expr).");
-    return;
-  }
-  if (!submitBtn) {
-    console.warn("Calculator script: submit button not found; submit disabling will be skipped.");
-  }
-
-  // --- Utilities ---
-  function safeTrim(v) { return (v || "").toString().trim(); }
-
-  function showLocalToast(msg, type = "info", ttl = 3000) {
-    if (typeof showToast === "function") { showToast(msg, type, ttl); return; }
-    // fallback simple toast
-    try {
-      const contId = "calc-local-toast-container";
-      let cont = document.getElementById(contId);
-      if (!cont) {
-        cont = document.createElement("div");
-        cont.id = contId;
-        cont.style.position = "fixed";
-        cont.style.right = "12px";
-        cont.style.top = "12px";
-        cont.style.zIndex = 9999;
-        document.body.appendChild(cont);
-      }
-      const el = document.createElement("div");
-      el.style.marginTop = "8px";
-      el.style.padding = "8px 12px";
-      el.style.borderRadius = "8px";
-      el.style.boxShadow = "0 6px 18px rgba(0,0,0,0.08)";
-      el.style.fontSize = "13px";
-      el.style.background = (type === "error") ? "#fee2e2" : (type === "success") ? "#ecfccb" : "#eef2ff";
-      el.style.color = (type === "error") ? "#991b1b" : (type === "success") ? "#166534" : "#1e293b";
-      el.textContent = msg;
-      cont.appendChild(el);
-      setTimeout(() => { el.style.opacity = "0"; setTimeout(()=>el.remove(), 300); }, ttl);
-    } catch (e) { /* ignore */ }
-  }
-
-  // --- submit button enabling/disabling ---
-  function checkCalc() {
-    const val = safeTrim(exprInput.value);
-    const enabled = !!val;
-    if (submitBtn) submitBtn.disabled = !enabled;
-
-    // toggle visual classes - Tailwind utility classes expected
-    if (submitBtn) {
-      if (!enabled) {
-        submitBtn.classList.remove("from-indigo-600","to-purple-600","hover:from-indigo-700","hover:to-purple-700");
-        submitBtn.classList.add("from-gray-400","to-gray-500","cursor-not-allowed","opacity-75");
-      } else {
-        submitBtn.classList.add("from-indigo-600","to-purple-600","hover:from-indigo-700","hover:to-purple-700");
-        submitBtn.classList.remove("from-gray-400","to-gray-500","cursor-not-allowed","opacity-75");
+  (function () {
+    // --- Safe element lookups ---
+    const exprInput = document.getElementById("calc-expr");
+    // try to find submit by id, fallback to first submit button in the form
+    let submitBtn = document.getElementById("calc-submit");
+    if (!submitBtn) {
+      const form = document.getElementById("calc-form");
+      if (form) {
+        submitBtn = form.querySelector('button[type="submit"]');
       }
     }
-  }
+    const keypadContainer = document.getElementById("calc-keypad");
+    const QUICK_EXAMPLE_SELECTOR = ".quick-example";
 
-  // --- quick examples ---
-  document.querySelectorAll(QUICK_EXAMPLE_SELECTOR).forEach(btn => {
-    btn.addEventListener("click", () => {
-      const expr = btn.getAttribute("data-expr") || "";
-      exprInput.value = expr;
-      checkCalc();
-      exprInput.focus();
-      showLocalToast("Example loaded", "info", 1200);
-    });
-  });
-
-  // --- keypad buttons (if present) ---
-  if (keypadContainer) {
-    keypadContainer.addEventListener("click", (ev) => {
-      const btn = ev.target.closest("button");
-      if (!btn) return;
-      const id = btn.id || "";
-      if (id === "calc-clear") {
-        exprInput.value = "";
-        checkCalc();
-        exprInput.focus();
-        return;
-      }
-      if (id === "calc-backspace") {
-        exprInput.value = exprInput.value.slice(0, -1);
-        checkCalc();
-        exprInput.focus();
-        return;
-      }
-      // If it's the submit button (type="submit"), let the form handle it
-      if (btn.type && btn.type.toLowerCase() === "submit") return;
-      // Normal keypad button: read data-val attribute
-      const val = btn.getAttribute("data-val");
-      if (val != null) {
-        const cursorPos = exprInput.selectionStart || exprInput.value.length;
-        const before = exprInput.value.slice(0, cursorPos);
-        const after = exprInput.value.slice(cursorPos);
-        exprInput.value = before + val + after;
-        const newPos = before.length + val.length;
-        try { exprInput.setSelectionRange(newPos, newPos); } catch (e) {}
-        checkCalc();
-        exprInput.focus();
-      }
-    });
-  }
-
-  // --- copy to clipboard helper ---
-  window.copyToClipboard = function (text) {
-    if (!navigator.clipboard) {
-      showLocalToast("Clipboard not supported", "error");
+    // guard: if essential elements missing, stop early but not fatal
+    if (!exprInput) {
+      console.warn("Calculator script: required element missing (calc-expr).");
       return;
     }
-    navigator.clipboard.writeText(String(text)).then(() => {
-      showLocalToast("Result copied to clipboard!", "success");
-    }).catch((err) => {
-      console.error("copy failed", err);
-      showLocalToast("Failed to copy result", "error");
-    });
-  };
+    if (!submitBtn) {
+      console.warn(
+        "Calculator script: submit button not found; submit disabling will be skipped."
+      );
+    }
 
-  // --- recent calculations (localStorage) ---
-  function saveRecentCalc(expr, result) {
-    try {
-      const key = "recentCalculations";
-      const raw = localStorage.getItem(key) || "[]";
-      const arr = JSON.parse(raw);
-      arr.unshift({ expr: String(expr), result: String(result), ts: new Date().toISOString() });
-      if (arr.length > 5) arr.splice(5);
-      localStorage.setItem(key, JSON.stringify(arr));
-    } catch (e) { /* ignore */ }
-  }
-  window.getRecentCalcs = function () {
-    try {
-      return JSON.parse(localStorage.getItem("recentCalculations") || "[]");
-    } catch (e) { return []; }
-  };
+    // --- Utilities ---
+    function safeTrim(v) {
+      return (v || "").toString().trim();
+    }
 
-  // --- keyboard shortcuts ---
-  exprInput.addEventListener("keydown", (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-      e.preventDefault();
-      if (submitBtn && !submitBtn.disabled) submitBtn.click();
-    }
-    if (e.key === "Escape") {
-      exprInput.value = "";
-      checkCalc();
-    }
-    if (e.altKey && e.key.toLowerCase() === "b") {
-      exprInput.value = exprInput.value.slice(0, -1);
-      checkCalc();
-      e.preventDefault();
-    }
-    if (e.altKey && e.key.toLowerCase() === "c") {
-      exprInput.value = "";
-      checkCalc();
-      e.preventDefault();
-    }
-  });
-
-  // --- HTMX hook: when partial result returns, save to recent and show toast if present ---
-  if (window.htmx) {
-    document.body.addEventListener('htmx:afterSwap', function (evt) {
+    function showLocalToast(msg, type = "info", ttl = 3000) {
+      if (typeof showToast === "function") {
+        showToast(msg, type, ttl);
+        return;
+      }
+      // fallback simple toast
       try {
-        const tgt = evt.detail.target;
-        if (tgt && tgt.id === "calc-result") {
-          const resultEl = tgt.querySelector(".text-2xl, .text-3xl, .calc-result-value") || tgt.querySelector("[data-calc-result]");
-          const exprPreview = tgt.querySelector(".font-mono") || tgt.querySelector("[data-calc-expr]");
-          const resultText = resultEl ? resultEl.textContent.trim() : null;
-          const exprText = exprPreview ? exprPreview.textContent.trim() : (exprInput.value || "").trim();
-          if (resultText) {
-            saveRecentCalc(exprText, resultText);
-            showLocalToast("Calculation complete", "success", 1600);
-          } else {
-            const errEl = tgt.querySelector(".text-red-700, .calc-error") || tgt.querySelector("[data-calc-error]");
-            if (errEl) showLocalToast("Calculation error", "error", 2600);
-          }
+        const contId = "calc-local-toast-container";
+        let cont = document.getElementById(contId);
+        if (!cont) {
+          cont = document.createElement("div");
+          cont.id = contId;
+          cont.style.position = "fixed";
+          cont.style.right = "12px";
+          cont.style.top = "12px";
+          cont.style.zIndex = 9999;
+          document.body.appendChild(cont);
         }
-      } catch (e) { /* ignore */ }
+        const el = document.createElement("div");
+        el.style.marginTop = "8px";
+        el.style.padding = "8px 12px";
+        el.style.borderRadius = "8px";
+        el.style.boxShadow = "0 6px 18px rgba(0,0,0,0.08)";
+        el.style.fontSize = "13px";
+        el.style.background =
+          type === "error"
+            ? "#fee2e2"
+            : type === "success"
+            ? "#ecfccb"
+            : "#eef2ff";
+        el.style.color =
+          type === "error"
+            ? "#991b1b"
+            : type === "success"
+            ? "#166534"
+            : "#1e293b";
+        el.textContent = msg;
+        cont.appendChild(el);
+        setTimeout(() => {
+          el.style.opacity = "0";
+          setTimeout(() => el.remove(), 300);
+        }, ttl);
+      } catch (e) {
+        /* ignore */
+      }
+    }
+
+    // --- submit button enabling/disabling ---
+    function checkCalc() {
+      const val = safeTrim(exprInput.value);
+      const enabled = !!val;
+      if (submitBtn) submitBtn.disabled = !enabled;
+
+      // toggle visual classes - Tailwind utility classes expected
+      if (submitBtn) {
+        if (!enabled) {
+          submitBtn.classList.remove(
+            "from-indigo-600",
+            "to-purple-600",
+            "hover:from-indigo-700",
+            "hover:to-purple-700"
+          );
+          submitBtn.classList.add(
+            "from-gray-400",
+            "to-gray-500",
+            "cursor-not-allowed",
+            "opacity-75"
+          );
+        } else {
+          submitBtn.classList.add(
+            "from-indigo-600",
+            "to-purple-600",
+            "hover:from-indigo-700",
+            "hover:to-purple-700"
+          );
+          submitBtn.classList.remove(
+            "from-gray-400",
+            "to-gray-500",
+            "cursor-not-allowed",
+            "opacity-75"
+          );
+        }
+      }
+    }
+
+    // --- quick examples ---
+    document.querySelectorAll(QUICK_EXAMPLE_SELECTOR).forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const expr = btn.getAttribute("data-expr") || "";
+        exprInput.value = expr;
+        checkCalc();
+        exprInput.focus();
+        showLocalToast("Example loaded", "info", 1200);
+      });
     });
-  }
 
-  // --- Initialization ---
-  exprInput.addEventListener("input", checkCalc);
-  checkCalc();
-  setTimeout(() => { try { exprInput.focus(); } catch (e) {} }, 120);
-  window._calc_helpers = { checkCalc, saveRecentCalc, getRecentCalcs: window.getRecentCalcs };
+    // --- keypad buttons (if present) ---
+    if (keypadContainer) {
+      keypadContainer.addEventListener("click", (ev) => {
+        const btn = ev.target.closest("button");
+        if (!btn) return;
+        const id = btn.id || "";
+        if (id === "calc-clear") {
+          exprInput.value = "";
+          checkCalc();
+          exprInput.focus();
+          return;
+        }
+        if (id === "calc-backspace") {
+          exprInput.value = exprInput.value.slice(0, -1);
+          checkCalc();
+          exprInput.focus();
+          return;
+        }
+        // If it's the submit button (type="submit"), let the form handle it
+        if (btn.type && btn.type.toLowerCase() === "submit") return;
+        // Normal keypad button: read data-val attribute
+        const val = btn.getAttribute("data-val");
+        if (val != null) {
+          const cursorPos = exprInput.selectionStart || exprInput.value.length;
+          const before = exprInput.value.slice(0, cursorPos);
+          const after = exprInput.value.slice(cursorPos);
+          exprInput.value = before + val + after;
+          const newPos = before.length + val.length;
+          try {
+            exprInput.setSelectionRange(newPos, newPos);
+          } catch (e) {}
+          checkCalc();
+          exprInput.focus();
+        }
+      });
+    }
 
-})();
+    // --- copy to clipboard helper ---
+    window.copyToClipboard = function (text) {
+      if (!navigator.clipboard) {
+        showLocalToast("Clipboard not supported", "error");
+        return;
+      }
+      navigator.clipboard
+        .writeText(String(text))
+        .then(() => {
+          showLocalToast("Result copied to clipboard!", "success");
+        })
+        .catch((err) => {
+          console.error("copy failed", err);
+          showLocalToast("Failed to copy result", "error");
+        });
+    };
+
+    // --- recent calculations (localStorage) ---
+    function saveRecentCalc(expr, result) {
+      try {
+        const key = "recentCalculations";
+        const raw = localStorage.getItem(key) || "[]";
+        const arr = JSON.parse(raw);
+        arr.unshift({
+          expr: String(expr),
+          result: String(result),
+          ts: new Date().toISOString(),
+        });
+        if (arr.length > 5) arr.splice(5);
+        localStorage.setItem(key, JSON.stringify(arr));
+      } catch (e) {
+        /* ignore */
+      }
+    }
+    window.getRecentCalcs = function () {
+      try {
+        return JSON.parse(localStorage.getItem("recentCalculations") || "[]");
+      } catch (e) {
+        return [];
+      }
+    };
+
+    // --- keyboard shortcuts ---
+    exprInput.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault();
+        if (submitBtn && !submitBtn.disabled) submitBtn.click();
+      }
+      if (e.key === "Escape") {
+        exprInput.value = "";
+        checkCalc();
+      }
+      if (e.altKey && e.key.toLowerCase() === "b") {
+        exprInput.value = exprInput.value.slice(0, -1);
+        checkCalc();
+        e.preventDefault();
+      }
+      if (e.altKey && e.key.toLowerCase() === "c") {
+        exprInput.value = "";
+        checkCalc();
+        e.preventDefault();
+      }
+    });
+
+    // --- HTMX hook: when partial result returns, save to recent and show toast if present ---
+    // --- HTMX hook: when partial result returns, save to recent and show toast if present ---
+    // --- HTMX handler: parse server HTML response (hx-swap="none") ---
+    if (window.htmx) {
+      document.body.addEventListener("htmx:afterRequest", function (evt) {
+        try {
+          // Only handle requests triggered by our form
+          const trigger = evt.detail.elt;
+          if (!trigger) return;
+          const form = trigger.closest && trigger.closest("form");
+          if (!form || form.id !== "calc-form") return;
+
+          // Raw server response HTML
+          const html = evt.detail.xhr && evt.detail.xhr.responseText;
+          if (!html) return;
+
+          // Parse HTML to DOM
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, "text/html");
+
+          // Try to read result and expression from the returned partial
+          const resultEl = doc.querySelector(
+            ".text-2xl, .text-3xl, .calc-result-value, [data-calc-result]"
+          );
+          const exprEl = doc.querySelector(".font-mono, [data-calc-expr]");
+
+          const resultText = resultEl ? resultEl.textContent.trim() : null;
+          const exprText = exprEl
+            ? exprEl.textContent.trim()
+            : (exprInput.value || "").trim();
+
+          if (resultText) {
+            // Put result into the input field and move cursor to end
+            exprInput.value = resultText;
+            try {
+              exprInput.setSelectionRange(
+                exprInput.value.length,
+                exprInput.value.length
+              );
+            } catch (e) {}
+
+            // Save recent calculation
+            try {
+              saveRecentCalc(exprText, resultText);
+            } catch (e) {}
+
+            // Show single success toast
+            showLocalToast("Calculation complete", "success", 1600);
+
+            // Re-run UI checks
+            try {
+              checkCalc();
+            } catch (e) {}
+          } else {
+            // If error present in response, extract and show it
+            const errEl = doc.querySelector(
+              ".text-red-700, .calc-error, [data-calc-error]"
+            );
+            const errText = errEl
+              ? errEl.textContent.trim()
+              : "Calculation error";
+            showLocalToast(errText || "Calculation error", "error", 2600);
+          }
+        } catch (err) {
+          console.error("HTMX response parse error:", err);
+        }
+      });
+    }
+
+    // --- Initialization ---
+    exprInput.addEventListener("input", checkCalc);
+    checkCalc();
+    setTimeout(() => {
+      try {
+        exprInput.focus();
+      } catch (e) {}
+    }, 120);
+    window._calc_helpers = {
+      checkCalc,
+      saveRecentCalc,
+      getRecentCalcs: window.getRecentCalcs,
+    };
+  })();
 </script>
 
 {% endblock %}
