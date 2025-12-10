@@ -26,11 +26,11 @@ def organize_files(target_folder: str):
     target = Path(target_folder).expanduser()
 
     if not target.exists():
-        print("\n❌ Folder does not exist.")
+        print("\n Folder does not exist.")
         return
 
     if not target.is_dir():
-        print("\n❌ Given path is not a folder.")
+        print("\n Given path is not a folder.")
         return
 
     files_moved = 0
@@ -56,9 +56,9 @@ def organize_files(target_folder: str):
                 files_moved += 1
 
     if files_moved == 0:
-        print("\nℹ️ No files to organize in this folder.")
+        print("\n No files to organize in this folder.")
     else:
-        print(f"\n📁 Files organized successfully! Total files moved: {files_moved}")
+        print(f"\n Files organized successfully! Total files moved: {files_moved}")
 
 
 def run_file_organizer():

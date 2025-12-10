@@ -1,7 +1,6 @@
 import os
 from datetime import datetime
 
-
 APP_NAME = "PERSONAL PRODUCTIVITY SUITE"
 APP_VERSION = "v1.0.0"
 

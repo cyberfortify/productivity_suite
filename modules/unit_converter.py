@@ -1,5 +1,3 @@
-# modules/unit_converter.py
-
 from modules.utils import print_header, get_float_input, get_int_input, pause
 
 

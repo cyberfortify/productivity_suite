@@ -10,10 +10,8 @@ from modules.utils import print_header, get_int_input, confirm_action, pause
 DATA_FOLDER = "data"
 BACKUP_FOLDER = os.path.join(DATA_FOLDER, "backups")
 
-# Kaun se files ka backup lena hai:
 FILES_TO_BACKUP = [
     os.path.join(DATA_FOLDER, "notes.json"),
-    # future me aur bhi files yahan add kar sakte ho
 ]
 
 
@@ -38,9 +36,9 @@ def create_backup():
             copied_files += 1
 
     if copied_files == 0:
-        print("\nℹ️ No data files found to backup.")
+        print("\n No data files found to backup.")
     else:
-        print(f"\n✅ Backup created at: {backup_dir}")
+        print(f"\n Backup created at: {backup_dir}")
         print(f"Total files backed up: {copied_files}")
 
 
@@ -55,7 +53,7 @@ def list_backups():
     backups.sort()
 
     if not backups:
-        print("\nℹ️ No backups available.")
+        print("\n No backups available.")
         return []
 
     print("\nAvailable Backups:")
@@ -96,7 +94,7 @@ def restore_backup():
         shutil.copy2(src, dst)
         restored_files += 1
 
-    print(f"\n✅ Restore completed. Files restored: {restored_files}")
+    print(f"\n Restore completed. Files restored: {restored_files}")
 
 
 def run_backup_manager():

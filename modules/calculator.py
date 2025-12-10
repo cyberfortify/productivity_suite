@@ -51,7 +51,6 @@ def run_calculator():
         choice = get_int_input("Enter your choice (1-5): ", min_value=1, max_value=5)
 
         if choice == 5:
-            # Back to main menu
             break
 
         try:

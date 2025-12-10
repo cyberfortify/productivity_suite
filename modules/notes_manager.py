@@ -29,7 +29,6 @@ class NotesManager:
         except FileNotFoundError:
             self.notes = []
         except json.JSONDecodeError:
-            # Corrupted file – reset notes but don't crash
             print("Warning: notes.json is corrupted. Resetting notes.")
             self.notes = []
 
@@ -97,7 +96,7 @@ class NotesManager:
             return False
 
         self.notes.remove(note)
-        # Reassign IDs for simplicity
+        
         for idx, n in enumerate(self.notes, start=1):
             n["id"] = idx
 
@@ -181,7 +180,7 @@ def run_notes_manager():
             pause()
 
         elif choice == 2:
-            # Add new note
+            
             print_header("ADD NEW NOTE")
             title = get_non_empty_input("Enter note title: ")
             print("Enter note content (end with an empty line):")
@@ -198,7 +197,7 @@ def run_notes_manager():
             pause()
 
         elif choice == 3:
-            # Search notes
+            
             print_header("SEARCH NOTES")
             keyword = get_non_empty_input("Enter keyword to search: ")
             results = manager.search_notes(keyword)
@@ -206,7 +205,7 @@ def run_notes_manager():
             pause()
 
         elif choice == 4:
-            # Edit note
+            
             print_header("EDIT NOTE")
             display_notes(manager.list_notes())
             if not manager.list_notes():
@@ -245,7 +244,7 @@ def run_notes_manager():
             pause()
 
         elif choice == 5:
-            # Delete note
+            
             print_header("DELETE NOTE")
             display_notes(manager.list_notes())
             if not manager.list_notes():
@@ -266,7 +265,7 @@ def run_notes_manager():
             pause()
 
         elif choice == 6:
-            # Export notes
+            
             print_header("EXPORT NOTES")
             print("1. Export to TXT")
             print("2. Export to CSV")
@@ -275,14 +274,13 @@ def run_notes_manager():
             export_choice = get_int_input("Enter choice (1-3): ", min_value=1, max_value=3)
             if export_choice == 1:
                 path = manager.export_notes_to_txt()
-                print(f"\n✅ Notes exported to: {path}")
+                print(f"\n Notes exported to: {path}")
             elif export_choice == 2:
                 path = manager.export_notes_to_csv()
-                print(f"\n✅ Notes exported to: {path}")
+                print(f"\n Notes exported to: {path}")
             else:
                 print("\nExport cancelled.")
             pause()
 
         elif choice == 7:
-            # Back to main menu
             break

@@ -13,7 +13,7 @@ def countdown_timer():
         time.sleep(1)
 
     print("\rTime remaining: 0 seconds          ")
-    print("\n⏰ Time's up!")
+    print("\n Time's up!")
     pause()
 
 
@@ -32,11 +32,9 @@ def stopwatch():
             seconds = int(elapsed % 60)
             millis = int((elapsed - int(elapsed)) * 100)
 
-            # \r se same line update hoti rahegi
             print(f"\rElapsed time: {minutes:02d}:{seconds:02d}.{millis:02d}", end="")
             time.sleep(0.1)
     except KeyboardInterrupt:
-        # Jab tum Ctrl+C dabaoge, yahan aayega
         end = time.time()
         elapsed = end - start
         minutes = int(elapsed // 60)
